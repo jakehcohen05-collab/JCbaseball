@@ -8,3 +8,10 @@ venv/
 
 # Generated database (rebuild with `python -m baseball.cli init`)
 data/*.db
+
+# Pulled season data (rebuildable cache — see data/README.md).
+# Keep the docs; ignore the CSVs and per-season folders.
+data/*.csv
+data/20*/
+!data/README.md
+!data/.gitkeep

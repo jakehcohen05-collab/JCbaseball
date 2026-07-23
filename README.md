@@ -30,6 +30,17 @@ engine agree to the last decimal.
    Feed it your own data, calibrate the documented constants, and the model
    stays entirely yours.
 
+   **Getting data in:** [`analytics/mlbpull.py`](analytics/mlbpull.py) pulls a
+   full season (hitters, pitchers, standings) from the free MLB Stats API to
+   CSV, and [`analytics/backtest.py`](analytics/backtest.py) validates the
+   projections out-of-sample against naive baselines. See
+   [`data/README.md`](data/README.md).
+
+   ```bash
+   python -m analytics.mlbpull --seasons 2019-2026 --out data   # run where you have internet
+   python -m analytics.backtest --csv "data/*/hitting.csv" --value ops --sample plateAppearances
+   ```
+
 ---
 
 ## `baseball/` — Baseball Analysis Database (Python)
