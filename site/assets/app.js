@@ -10,7 +10,10 @@
  */
 
 import * as sm from "./sabermetrics.js";
+import * as proj from "./projection.js";
 import { SAMPLE } from "./sample-data.js";
+
+const PROJ_SEASONS = [2024, 2025, 2026];   // history used to project the target
 
 const SEASON = 2026;
 const API = "https://statsapi.mlb.com/api/v1";
@@ -453,6 +456,175 @@ function renderPlayerCard(name, meta, bat, pit) {
 }
 
 /* ======================================================================= */
+/*  Projections (the value-add)                                            */
+/* ======================================================================= */
+
+// seasonsData: { season: [ {id, name, team, pos, age, stat, role} ] }
+
+function computeHitterProjections(seasonsData, projSeason) {
+  const history = {};   // id -> {name, team, pos, seasons: [{value, sample, age, season}]}
+  for (const [season, rows] of Object.entries(seasonsData)) {
+    const yr = +season;
+    const raw = {}, refIds = [], meta = {};
+    for (const r of rows) {
+      const w = proj.wobaRaw(r.stat);
+      if (w == null) continue;
+      const pa = +r.stat.plateAppearances ||
+        ((+r.stat.atBats || 0) + (+r.stat.baseOnBalls || 0) + (+r.stat.hitByPitch || 0) + (+r.stat.sacFlies || 0));
+      raw[r.id] = w; meta[r.id] = { ...r, pa };
+      if (pa >= 100) refIds.push(r.id);
+    }
+    const idx = proj.toIndex(raw, { refIds });
+    for (const id of Object.keys(idx)) {
+      const m = meta[id];
+      (history[id] ||= { name: m.name, team: m.team, pos: m.pos, seasons: [] });
+      history[id].name = m.name; history[id].team = m.team; history[id].pos = m.pos || history[id].pos;
+      history[id].seasons.push({ value: idx[id], sample: m.pa, age: m.age, season: yr });
+    }
+  }
+  return finishProjections(history, projSeason, "hit");
+}
+
+function computePitcherProjections(seasonsData, projSeason) {
+  const history = {};
+  for (const [season, rows] of Object.entries(seasonsData)) {
+    const yr = +season;
+    const raw = {}, refIds = [], meta = {};
+    for (const r of rows) {
+      const f = proj.fipRaw(r.stat);
+      if (f == null) continue;
+      const ip = proj.ipOf(r.stat);
+      raw[r.id] = f; meta[r.id] = { ...r, ip };
+      if (ip >= 20) refIds.push(r.id);
+    }
+    const idx = proj.toIndex(raw, { invert: true, refIds });
+    for (const id of Object.keys(idx)) {
+      const m = meta[id];
+      (history[id] ||= { name: m.name, team: m.team, role: m.role || "SP", seasons: [] });
+      history[id].name = m.name; history[id].team = m.team;
+      history[id].seasons.push({ value: idx[id], sample: m.ip, age: m.age, season: yr });
+    }
+  }
+  return finishProjections(history, projSeason, "pit");
+}
+
+function finishProjections(history, projSeason, kind) {
+  const out = [];
+  for (const h of Object.values(history)) {
+    if (!h.seasons.length) continue;
+    const latest = h.seasons.reduce((a, b) => (b.season > a.season ? b : a));
+    const projAge = (latest.age || 27) + (projSeason - latest.season);
+    const opts = kind === "pit"
+      ? { regressionSample: 60, basePlayingTime: 40 } : {};
+    const p = proj.projectIndex(
+      h.seasons.map((s) => ({ value: s.value, sample: s.sample, age: s.age || 27 })),
+      projAge, opts);
+    if (kind === "pit") {
+      out.push({ name: h.name, team: h.team, role: h.role, projAge,
+        ip: p.sample, index: p.value, war: proj.pitcherWar(p.value, p.sample, h.role) });
+    } else {
+      out.push({ name: h.name, team: h.team, pos: h.pos || "DH", projAge,
+        pa: p.sample, index: p.value, war: proj.hitterWar(p.value, p.sample, h.pos || "DH") });
+    }
+  }
+  out.sort((a, b) => b.war - a.war);
+  return out;
+}
+
+// --- live: build multi-season data from the API ---
+async function buildSeasonsFromApi(group) {
+  // birth years for age-in-season
+  const birth = {};
+  try {
+    const people = await fetchJSON(`${API}/sports/1/players?season=${PROJ_SEASONS.at(-1)}`);
+    for (const p of people.people || []) {
+      if (p.birthDate) birth[p.id] = +p.birthDate.slice(0, 4);
+    }
+  } catch { /* ages default to 27 below */ }
+
+  const seasonsData = {};
+  for (const yr of PROJ_SEASONS) {
+    const data = await fetchJSON(
+      `${API}/stats?stats=season&group=${group}&season=${yr}&sportId=1` +
+      `&playerPool=qualified&limit=250`);
+    const splits = data.stats?.[0]?.splits || [];
+    seasonsData[yr] = splits.map((s) => ({
+      id: s.player?.id, name: s.player?.fullName,
+      team: s.team?.abbreviation || abbrevFromName(s.team?.name),
+      pos: s.position?.abbreviation,
+      age: birth[s.player?.id] ? yr - birth[s.player.id] : 27,
+      role: (s.stat?.gamesStarted || 0) >= (s.stat?.gamesPlayed || 0) * 0.5 ? "SP" : "RP",
+      stat: s.stat || {},
+    }));
+  }
+  return seasonsData;
+}
+
+// --- fallback: synthesize 3 seasons from the single-season SAMPLE lines ---
+function buildSeasonsFromSample(group) {
+  const src = group === "hitting" ? SAMPLE.batting : SAMPLE.pitching;
+  const seasonsData = { 2023: [], 2024: [], 2025: [] };
+  const factors = { 2023: 0.93, 2024: 0.97, 2025: 1.0 };
+  const POS_CYCLE = ["SS", "CF", "2B", "3B", "RF", "C", "LF", "1B", "DH"];
+  src.forEach((s, i) => {
+    const baseAge = group === "hitting" ? 23 + (i % 9) : 24 + (i % 8);
+    const pos = POS_CYCLE[i % POS_CYCLE.length];
+    for (const yr of [2023, 2024, 2025]) {
+      const f = factors[yr] * (1 + ((i % 5) - 2) * 0.01);
+      const st = {};
+      for (const [k, v] of Object.entries(s.stat)) {
+        st[k] = typeof v === "number" ? Math.round(v * (typeof v === "number" && k !== "inningsPitched" ? f : 1)) : v;
+      }
+      if (s.stat.inningsPitched) st.inningsPitched = s.stat.inningsPitched;
+      seasonsData[yr].push({
+        id: s.player.fullName, name: s.player.fullName,
+        team: s.team.abbreviation, pos,
+        age: baseAge + (yr - 2025), role: "SP", stat: st,
+      });
+    }
+  });
+  return seasonsData;
+}
+
+const PROJ_HIT_COLS = [
+  { key: "rank", label: "#", cls: "col-rank" },
+  { key: "name", label: "Player", cls: "col-name", render: nameCell, sortVal: (r) => r.name, defaultDir: 1 },
+  { key: "pos", label: "Pos", cls: "col-name", render: (r) => r.pos, sortVal: (r) => r.pos, defaultDir: 1 },
+  { key: "projAge", label: "Age", render: (r) => sm.fmtInt(r.projAge) },
+  { key: "pa", label: "PA", render: (r) => sm.fmtInt(r.pa) },
+  { key: "index", label: "Index", title: "Provisional HVI (wOBA-based)", render: (r) => sm.fmtInt(r.index) },
+  { key: "war", label: "proj WAR", cls: "war", render: (r) => sm.fmt2(r.war) },
+];
+const PROJ_PIT_COLS = [
+  { key: "rank", label: "#", cls: "col-rank" },
+  { key: "name", label: "Player", cls: "col-name", render: nameCell, sortVal: (r) => r.name, defaultDir: 1 },
+  { key: "role", label: "Role", cls: "col-name", render: (r) => r.role, sortVal: (r) => r.role, defaultDir: 1 },
+  { key: "projAge", label: "Age", render: (r) => sm.fmtInt(r.projAge) },
+  { key: "ip", label: "IP", render: (r) => sm.fmtInt(r.ip) },
+  { key: "index", label: "Index", title: "Provisional PVI (FIP-based)", render: (r) => sm.fmtInt(r.index) },
+  { key: "war", label: "proj WAR", cls: "war", render: (r) => sm.fmt2(r.war) },
+];
+
+async function loadProjections() {
+  let hit, pit, live = true;
+  try {
+    const [hData, pData] = await Promise.all([
+      buildSeasonsFromApi("hitting"), buildSeasonsFromApi("pitching"),
+    ]);
+    hit = computeHitterProjections(hData, 2026);
+    pit = computePitcherProjections(pData, 2026);
+    if (!hit.length || !pit.length) throw new Error("empty");
+  } catch (err) {
+    live = false;
+    hit = computeHitterProjections(buildSeasonsFromSample("hitting"), 2026);
+    pit = computePitcherProjections(buildSeasonsFromSample("pitching"), 2026);
+  }
+  makeSortableTable(document.querySelector("#proj-hit-table"), PROJ_HIT_COLS, hit.slice(0, 25), { key: "war", dir: -1 });
+  makeSortableTable(document.querySelector("#proj-pit-table"), PROJ_PIT_COLS, pit.slice(0, 25), { key: "war", dir: -1 });
+  if (!live) throw new Error("projections used sample");
+}
+
+/* ======================================================================= */
 /*  Boot                                                                   */
 /* ======================================================================= */
 
@@ -470,7 +642,7 @@ async function boot() {
   setupPlayerSearch();
 
   const results = await Promise.allSettled([
-    loadStandings(), loadBatting(), loadPitching(),
+    loadStandings(), loadBatting(), loadPitching(), loadProjections(),
   ]);
   // If everything fell back to sample data, tell the user plainly.
   if (results.every((r) => r.status === "rejected")) showSampleBanner();

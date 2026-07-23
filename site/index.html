@@ -16,6 +16,7 @@
         <span class="brand-text">Baseball&nbsp;Lab</span>
       </a>
       <nav class="nav">
+        <a href="#projections">Projections</a>
         <a href="#standings">Standings</a>
         <a href="#batting">Batting</a>
         <a href="#pitching">Pitching</a>
@@ -49,6 +50,38 @@
     </section>
 
     <div id="data-banner" class="banner hidden" role="status"></div>
+
+    <!-- Projections (the value-add) -->
+    <section id="projections" class="section wrap">
+      <div class="section-head">
+        <h2>2026 Projections <span class="badge">WAR</span></h2>
+        <p class="section-sub">
+          Forward-looking, not descriptive. Multi-season history → regression →
+          aging → projected WAR. Provisional index from wOBA/FIP; swap in
+          PVI/HVI/DVI to finalize. Click any column to sort.
+        </p>
+      </div>
+      <div class="proj-grid">
+        <div class="proj-col">
+          <h3 class="proj-title">Hitters — projected WAR</h3>
+          <div class="table-scroll">
+            <table class="stat-table" id="proj-hit-table">
+              <thead></thead>
+              <tbody><tr><td class="loading">Projecting hitters…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="proj-col">
+          <h3 class="proj-title">Pitchers — projected WAR</h3>
+          <div class="table-scroll">
+            <table class="stat-table" id="proj-pit-table">
+              <thead></thead>
+              <tbody><tr><td class="loading">Projecting pitchers…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <!-- Standings -->
     <section id="standings" class="section wrap">

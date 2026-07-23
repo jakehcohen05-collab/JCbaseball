@@ -114,6 +114,19 @@ a:hover { text-decoration: underline; }
 
 .loading { color: var(--text-dim); font-style: italic; padding: 20px 0; }
 
+/* ---- Projections ------------------------------------------------------- */
+.badge {
+  font-family: var(--mono); font-size: .6rem; letter-spacing: 1.5px;
+  vertical-align: middle; padding: 3px 8px; border-radius: 6px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #06121c; font-weight: 800; margin-left: 8px;
+}
+.proj-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.proj-title { font-size: .95rem; margin: 0 0 10px; color: var(--text-mut);
+  font-weight: 600; letter-spacing: .2px; }
+td.war { color: var(--accent); font-weight: 800; }
+@media (max-width: 900px) { .proj-grid { grid-template-columns: 1fr; } }
+
 /* ---- Standings --------------------------------------------------------- */
 .league-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
 .division-card {
