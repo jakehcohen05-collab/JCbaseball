@@ -1,4 +1,23 @@
-# JCbaseball — Baseball Analysis Database
+# JC Baseball Lab
+
+Two complementary pieces:
+
+1. **[`site/`](site/) — the front-office analytics web app.** A static site that
+   pulls **live 2026 MLB data** from the public MLB Stats API and shows
+   standings, advanced batting/pitching leaderboards, and searchable player
+   cards (wOBA, FIP, ISO, K/BB, Pythagorean win%, …). This is the deployable
+   asset — see [`site/README.md`](site/README.md).
+2. **`baseball/` — the offline analysis engine.** A dependency-free Python
+   toolkit that stores box-score data in SQLite and computes the same
+   sabermetric suite. Useful for loading your own datasets and running analysis
+   without a browser. Documented below.
+
+The two share identical stat formulas, so the web leaderboards and the Python
+engine agree to the last decimal.
+
+---
+
+## `baseball/` — Baseball Analysis Database (Python)
 
 A small, dependency-free toolkit for storing baseball box-score data in SQLite
 and computing sabermetric statistics on top of it. It ships with a deterministic

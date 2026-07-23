@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>JC Baseball Lab — 2026 MLB Analytics</title>
+  <meta name="description" content="Live 2026 MLB analytics: standings, advanced batting and pitching leaderboards, and player cards. Built for front offices." />
+  <link rel="preconnect" href="https://statsapi.mlb.com" />
+  <link rel="stylesheet" href="./assets/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <a class="brand" href="#top">
+        <span class="brand-mark">JC</span>
+        <span class="brand-text">Baseball&nbsp;Lab</span>
+      </a>
+      <nav class="nav">
+        <a href="#standings">Standings</a>
+        <a href="#batting">Batting</a>
+        <a href="#pitching">Pitching</a>
+        <a href="#players">Players</a>
+      </nav>
+      <div class="season-pill" id="season-pill">2026 Season</div>
+    </div>
+  </header>
+
+  <main id="top">
+    <!-- Hero -->
+    <section class="hero wrap">
+      <div class="hero-copy">
+        <p class="eyebrow">Front-office analytics · Live data</p>
+        <h1>The 2026 season, measured.</h1>
+        <p class="lede">
+          Real-time standings and advanced leaderboards for every team and
+          qualified player — wOBA, FIP, ISO and more, computed on live MLB data.
+          Built to be an asset in the room where decisions get made.
+        </p>
+        <div class="hero-cta">
+          <a class="btn btn-primary" href="#batting">Explore leaderboards</a>
+          <a class="btn btn-ghost" href="#players">Search a player</a>
+        </div>
+        <div class="hero-stats" id="hero-stats">
+          <div class="hstat"><span class="hstat-num" id="hs-teams">—</span><span class="hstat-label">Teams tracked</span></div>
+          <div class="hstat"><span class="hstat-num" id="hs-hitters">—</span><span class="hstat-label">Qualified hitters</span></div>
+          <div class="hstat"><span class="hstat-num" id="hs-pitchers">—</span><span class="hstat-label">Qualified pitchers</span></div>
+        </div>
+      </div>
+    </section>
+
+    <div id="data-banner" class="banner hidden" role="status"></div>
+
+    <!-- Standings -->
+    <section id="standings" class="section wrap">
+      <div class="section-head">
+        <h2>Standings</h2>
+        <p class="section-sub">Win–loss, run differential, and Pythagorean expected win% (exp 1.83).</p>
+      </div>
+      <div class="league-grid" id="standings-grid">
+        <div class="loading">Loading standings…</div>
+      </div>
+    </section>
+
+    <!-- Batting -->
+    <section id="batting" class="section wrap">
+      <div class="section-head">
+        <h2>Batting leaders</h2>
+        <p class="section-sub">Qualified hitters. Click any column to sort. wOBA & ISO computed from component stats.</p>
+      </div>
+      <div class="table-scroll">
+        <table class="stat-table" id="batting-table">
+          <thead></thead>
+          <tbody><tr><td class="loading">Loading batting leaders…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Pitching -->
+    <section id="pitching" class="section wrap">
+      <div class="section-head">
+        <h2>Pitching leaders</h2>
+        <p class="section-sub">Qualified pitchers. Click any column to sort. FIP computed from component stats.</p>
+      </div>
+      <div class="table-scroll">
+        <table class="stat-table" id="pitching-table">
+          <thead></thead>
+          <tbody><tr><td class="loading">Loading pitching leaders…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Players -->
+    <section id="players" class="section wrap">
+      <div class="section-head">
+        <h2>Player search</h2>
+        <p class="section-sub">Search any player on a 2026 roster for a full advanced stat card.</p>
+      </div>
+      <div class="search-box">
+        <input id="player-search" type="search" autocomplete="off"
+               placeholder="Search a player… e.g. Aaron Judge, Skenes" />
+        <div id="search-results" class="search-results hidden"></div>
+      </div>
+      <div id="player-card" class="player-card hidden"></div>
+      <p class="hint" id="players-hint">Start typing to find a player.</p>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap footer-inner">
+      <div>
+        <span class="brand-mark small">JC</span>
+        <strong>Baseball Lab</strong>
+      </div>
+      <p class="footer-note">
+        Data: <a href="https://statsapi.mlb.com" rel="noopener">MLB Stats API</a>
+        · Advanced metrics computed client-side · Not affiliated with MLB.
+        <span id="updated"></span>
+      </p>
+    </div>
+  </footer>
+
+  <script type="module" src="./assets/app.js"></script>
+</body>
+</html>

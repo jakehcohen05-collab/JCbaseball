@@ -1,0 +1,18 @@
+# Netlify deployment config for JC Baseball Lab.
+# The site is fully static (no build step) — it fetches live 2026 data from the
+# MLB Stats API in the browser at view time.
+
+[build]
+  publish = "site"
+  command = ""
+
+# Long-cache the immutable asset files; keep HTML fresh.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
