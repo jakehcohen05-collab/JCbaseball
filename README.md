@@ -41,6 +41,17 @@ engine agree to the last decimal.
    python -m analytics.backtest --csv "data/*/hitting.csv" --value ops --sample plateAppearances
    ```
 
+   **The payoff:** [`analytics/report.py`](analytics/report.py) turns the pulled
+   CSVs into ranked **projected-WAR** leaderboards (hitters + pitchers) for a
+   target season, as CSV and Markdown — the artifact a GM or scout reads. It
+   derives a provisional index from wOBA/FIP (z-scored within season) so you get
+   real projected-WAR boards immediately; point it at your HVI/PVI/DVI columns to
+   finalize.
+
+   ```bash
+   python -m analytics.report --data data --season 2026 --out data/reports
+   ```
+
 ---
 
 ## `baseball/` — Baseball Analysis Database (Python)
