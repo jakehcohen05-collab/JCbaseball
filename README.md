@@ -15,6 +15,21 @@ Two complementary pieces:
 The two share identical stat formulas, so the web leaderboards and the Python
 engine agree to the last decimal.
 
+3. **[`analytics/`](analytics/) — the evaluation engine (projection → valuation
+   → team-building).** The forward-looking layer that turns the descriptive
+   PVI/HVI/DVI composites into decisions: it projects next season, converts a
+   projection to WAR / dollars / contract surplus, and ranks roster needs and
+   acquisition targets. Standard-library only, 37 tests, fully documented in
+   [`analytics/METHODOLOGY.md`](analytics/METHODOLOGY.md). Run the end-to-end
+   demo:
+
+   ```bash
+   python -m analytics.demo
+   ```
+
+   Feed it your own data, calibrate the documented constants, and the model
+   stays entirely yours.
+
 ---
 
 ## `baseball/` — Baseball Analysis Database (Python)
