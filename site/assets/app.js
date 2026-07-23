@@ -519,12 +519,15 @@ function finishProjections(history, projSeason, kind) {
     const p = proj.projectIndex(
       h.seasons.map((s) => ({ value: s.value, sample: s.sample, age: s.age || 27 })),
       projAge, opts);
+    const delta = +(p.value - latest.value).toFixed(1);   // projection vs last season
     if (kind === "pit") {
       out.push({ name: h.name, team: h.team, role: h.role, projAge,
-        ip: p.sample, index: p.value, war: proj.pitcherWar(p.value, p.sample, h.role) });
+        ip: p.sample, index: p.value, prevIndex: latest.value, delta,
+        war: proj.pitcherWar(p.value, p.sample, h.role) });
     } else {
       out.push({ name: h.name, team: h.team, pos: h.pos || "DH", projAge,
-        pa: p.sample, index: p.value, war: proj.hitterWar(p.value, p.sample, h.pos || "DH") });
+        pa: p.sample, index: p.value, prevIndex: latest.value, delta,
+        war: proj.hitterWar(p.value, p.sample, h.pos || "DH") });
     }
   }
   out.sort((a, b) => b.war - a.war);
@@ -621,7 +624,28 @@ async function loadProjections() {
   }
   makeSortableTable(document.querySelector("#proj-hit-table"), PROJ_HIT_COLS, hit.slice(0, 25), { key: "war", dir: -1 });
   makeSortableTable(document.querySelector("#proj-pit-table"), PROJ_PIT_COLS, pit.slice(0, 25), { key: "war", dir: -1 });
+  renderMovers([...hit, ...pit]);
   if (!live) throw new Error("projections used sample");
+}
+
+// Biggest projected gains / declines vs. the player's most recent season.
+// Require a real prior sample so noise from a cameo season doesn't dominate.
+function renderMovers(rows) {
+  const eligible = rows.filter((r) => (r.pa || r.ip * 4) >= 150);
+  const by = (dir) => [...eligible].sort((a, b) => dir * (b.delta - a.delta)).slice(0, 8);
+  const risers = by(1), fallers = by(-1);
+  const tag = (r) => `${r.pos || r.role}${r.team ? " · " + r.team : ""}`;
+  const row = (r) => {
+    const cls = r.delta > 0 ? "pos" : r.delta < 0 ? "neg" : "";
+    return `<div class="mover-row">
+      <span class="mv-name">${r.name}<span class="mv-tag">${tag(r)}</span></span>
+      <span class="mv-nums"><span class="mv-idx">${sm.fmtInt(r.prevIndex)}→${sm.fmtInt(r.index)}</span>
+      <span class="mv-delta ${cls}">${sm.fmtSigned(r.delta, 1)}</span></span></div>`;
+  };
+  const risEl = document.querySelector("#risers");
+  const falEl = document.querySelector("#fallers");
+  if (risEl) risEl.innerHTML = risers.map(row).join("");
+  if (falEl) falEl.innerHTML = fallers.map(row).join("");
 }
 
 /* ======================================================================= */
