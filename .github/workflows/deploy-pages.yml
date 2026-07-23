@@ -36,6 +36,11 @@ jobs:
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
+        with:
+          # Enable Pages automatically (needs Actions "read and write"
+          # permissions on the repo). If this fails, enable Pages once by hand:
+          # Settings → Pages → Source → GitHub Actions.
+          enablement: true
 
       - name: Upload site/ as the Pages artifact
         uses: actions/upload-pages-artifact@v3
